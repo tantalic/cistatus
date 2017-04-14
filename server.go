@@ -43,7 +43,7 @@ func (s *Server) init() {
 	// Set default color (if not defined)
 	if s.latestSummary.Color == "" {
 		now := time.Now()
-		s.latestSummary.Color = Unkown
+		s.latestSummary.Color = Unknown
 		s.latestSummary.LastUpdated = &now
 	}
 

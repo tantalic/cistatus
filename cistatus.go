@@ -54,5 +54,5 @@ const (
 	Red    = Color("red")
 	Yellow = Color("yellow")
 	Green  = Color("green")
-	Unkown = Color("question")
+	Unknown = Color("question")
 )

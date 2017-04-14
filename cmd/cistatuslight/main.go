@@ -89,7 +89,7 @@ func run(conf config) error {
 			if err != nil {
 				log.Printf("Error watching status:%v\n", err)
 				summaryChan <- cistatus.Summary{
-					Color: cistatus.Unkown,
+					Color: cistatus.Unknown,
 				}
 			}
 			return err
@@ -119,7 +119,7 @@ func NewStatusLightRobot(c config, summaryChan chan cistatus.Summary) *gobot.Rob
 	work := func() {
 		for {
 			summary := <-summaryChan
-			log.Printf("Recieved status update: %s\n", summary.Color)
+			log.Printf("Received status update: %s\n", summary.Color)
 
 			if summary.Color == cistatus.Red {
 				red.Off()

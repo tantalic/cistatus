@@ -30,7 +30,7 @@ func runloop(conf config) error {
 		time.Sleep(anybarLaunchWaitDuration)
 	}
 
-	logger.Logf("setting status to %s until first status is recieved", anybar.Question)
+	logger.Logf("setting status to %s until first status is received", anybar.Question)
 	anybarClient.Set(anybar.Question)
 
 	summaryChan := make(chan cistatus.Summary)
@@ -38,7 +38,7 @@ func runloop(conf config) error {
 		for {
 			status := <-summaryChan
 
-			logger.Logf("recieved status: %s", status)
+			logger.Logf("received status: %s", status)
 			anybarClient.Set(anybar.Style(status.Color))
 		}
 	}()

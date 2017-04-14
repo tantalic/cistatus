@@ -36,7 +36,7 @@ func main() {
 	}
 
 	sig := <-exitChan()
-	log.Printf("Recieved signal: %v\n", sig)
+	log.Printf("Received signal: %v\n", sig)
 	log.Println("Exiting")
 }
 
