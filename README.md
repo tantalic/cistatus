@@ -1,4 +1,5 @@
 # Continuous Integration Status Server (and Clients)
+[![Version](https://badge.fury.io/gh/tantalic%2Fcistatus.svg)](https://github.com/tantalic/cistatus/releases) [![Go Report Card](https://goreportcard.com/badge/github.com/tantalic/cistatus)](https://goreportcard.com/report/github.com/tantalic/cistatus) [![license](https://img.shields.io/github/license/tantalic/cistatus.svg)](https://github.com/tantalic/cistatus/blob/master/LICENSE)
 
 ## License
 
