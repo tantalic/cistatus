@@ -1,0 +1,13 @@
+[Unit]
+Description=Toolhouse CI Status Light
+
+[Service]
+ExecStart=/usr/local/bin/cistatuslight ci-status.example.com
+Restart=always
+User=root
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=cistatuslight
+
+[Install]
+WantedBy=multi-user.target
