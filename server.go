@@ -36,7 +36,7 @@ type Server struct {
 	}
 }
 
-func NewServer(fetcher Fetcher) *Server {
+func NewServer(fetcher Fetcher, fetchInterval time.Duration) *Server {
 	now := time.Now()
 
 	s := &Server{
@@ -63,6 +63,9 @@ func NewServer(fetcher Fetcher) *Server {
 	s.ServeMux = http.NewServeMux()
 	s.ServeMux.HandleFunc("/api", s.allProjects)
 	s.ServeMux.HandleFunc("/api/watch", s.websocketSubscribeHandler)
+
+	// Start fetching
+	go s.fetchLoop(fetchInterval)
 
 	return s
 }
@@ -126,32 +129,37 @@ func (s *Server) websocketSubscribeHandler(w http.ResponseWriter, r *http.Reques
 	s.addSubscriber(conn)
 }
 
-func (s *Server) StartFetching(interval time.Duration) {
-	go func() {
-		ticker := time.Tick(interval)
+func (s *Server) fetchLoop(interval time.Duration) {
+	ticker := time.Tick(interval)
+	errCount := 0
 
-		for {
-			s.Logger.Println("Fetching CI server status")
+	for {
+		s.Logger.Println("Fetching CI server status")
 
-			projects, err := s.fetcher.FetchStatus()
-			if err != nil {
-				s.Logger.Printf("Error fetching status: %s\n", err)
+		projects, err := s.fetcher.FetchStatus()
+		if err != nil {
+			s.Logger.Printf("Error fetching status: %s\n", err)
+			errCount++
+			if errCount >= 10 {
+
 			}
-
-			now := time.Now()
-			s.latestSummary.Projects = projects
-			s.latestSummary.LastUpdated = &now
-
-			newColor := color(projects)
-			if newColor != s.latestSummary.Color {
-				s.latestSummary.Color = newColor
-				s.websocket.broadcast <- s.latestSummary
-			}
-
-			s.Logger.Printf("Fetched %d projects\n", len(projects))
 			<-ticker
+			continue
 		}
-	}()
+
+		now := time.Now()
+		s.latestSummary.Projects = projects
+		s.latestSummary.LastUpdated = &now
+
+		newColor := color(projects)
+		if newColor != s.latestSummary.Color {
+			s.latestSummary.Color = newColor
+			s.websocket.broadcast <- s.latestSummary
+		}
+
+		s.Logger.Printf("Fetched %d projects\n", len(projects))
+		<-ticker
+	}
 }
 
 func (s *Server) handleBroadcasts() {

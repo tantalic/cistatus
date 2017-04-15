@@ -89,7 +89,7 @@ func configFromEnv() (config, error) {
 
 func (c config) NewServer() *cistatus.Server {
 	fetcher := gitlab.NewClient(c.GitLabBaseURL, c.GitLabAPIToken)
-	server := cistatus.NewServer(fetcher)
+	server := cistatus.NewServer(fetcher, c.GitLabRefreshInterval)
 
 	if c.Verbose {
 		server.Logger = log.New(os.Stdout, "", log.LstdFlags)

@@ -19,8 +19,6 @@ func main() {
 	}
 
 	server := config.NewServer()
-	server.StartFetching(config.GitLabRefreshInterval)
-
 	err = http.ListenAndServe(config.HTTPAddress, server)
 	if err != nil {
 		log.Println(err)
