@@ -41,7 +41,7 @@ func NewServer(fetcher Fetcher, fetchInterval time.Duration) *Server {
 
 	s := &Server{
 		fetcher: fetcher,
-		// Initial status summary is "unkown"
+		// Initial status summary is "unknown"
 		latestSummary: Summary{
 			Color:       Unknown,
 			LastUpdated: &now,
