@@ -25,7 +25,7 @@ func main() {
 		cli.IntFlag{
 			Name:        "status-port",
 			EnvVar:      "STATUS_PORT",
-			Usage:       "udp port the anybar app is listening on",
+			Usage:       "tcp (http) port to connect to the status server on",
 			Destination: &conf.StatusPort,
 		},
 		cli.StringFlag{
