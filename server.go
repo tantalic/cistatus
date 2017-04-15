@@ -2,11 +2,14 @@ package cistatus
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"sync"
+
+	"io/ioutil"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/websocket"
@@ -14,19 +17,18 @@ import (
 )
 
 type Server struct {
-	*http.ServeMux
-
-	fetcher       Fetcher
-	latestSummary Summary
-
-	Logger Logger
+	Logger *log.Logger
 
 	JWT struct {
 		Algorithm string
 		Secret    []byte
 	}
 
-	websocket struct {
+	*http.ServeMux
+
+	fetcher       Fetcher
+	latestSummary Summary
+	websocket     struct {
 		upgrader    websocket.Upgrader
 		mutex       sync.RWMutex
 		connections map[*websocket.Conn]bool
@@ -44,8 +46,8 @@ func NewServer(fetcher Fetcher) *Server {
 			Color:       Unknown,
 			LastUpdated: &now,
 		},
-		// Default to no logging
-		Logger: NewNullLogger(),
+		// Default to discarding logs
+		Logger: log.New(ioutil.Discard, "", 0),
 	}
 
 	// Setup for websockets
@@ -55,7 +57,6 @@ func NewServer(fetcher Fetcher) *Server {
 	}
 	s.websocket.connections = make(map[*websocket.Conn]bool)
 	s.websocket.broadcast = make(chan Summary)
-
 	go s.handleBroadcasts()
 
 	// Create servemux with routes to http api
@@ -107,7 +108,7 @@ func (s *Server) isAuthorized(r *http.Request) bool {
 
 	token, err := jwt.Parse(headerParts[1], s.jwtKey)
 	if err != nil {
-		s.logf("JWT error: %s", err)
+		s.Logger.Printf("JWT error: %s\n", err)
 		return false
 	}
 
@@ -118,7 +119,7 @@ func (s *Server) websocketSubscribeHandler(w http.ResponseWriter, r *http.Reques
 	conn, err := s.websocket.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		err := errors.Wrap(err, "unable to create websocket connection to subscribe to status updates")
-		s.log(err)
+		s.Logger.Println(err)
 		return
 	}
 
@@ -130,11 +131,11 @@ func (s *Server) StartFetching(interval time.Duration) {
 		ticker := time.Tick(interval)
 
 		for {
-			s.log("Fetching CI server status")
+			s.Logger.Println("Fetching CI server status")
 
 			projects, err := s.fetcher.FetchStatus()
 			if err != nil {
-				s.logf("Error fetching status: %s\n", err)
+				s.Logger.Printf("Error fetching status: %s\n", err)
 			}
 
 			now := time.Now()
@@ -147,10 +148,9 @@ func (s *Server) StartFetching(interval time.Duration) {
 				s.websocket.broadcast <- s.latestSummary
 			}
 
-			s.logf("Fetched %d projects", len(projects))
+			s.Logger.Printf("Fetched %d projects\n", len(projects))
 			<-ticker
 		}
-
 	}()
 }
 
@@ -190,22 +190,6 @@ func (s *Server) removeSubscriber(conn *websocket.Conn) {
 	s.websocket.mutex.Unlock()
 
 	conn.Close()
-}
-
-func (s *Server) log(a ...interface{}) {
-	if s.Logger == nil {
-		return
-	}
-
-	s.Logger.Log(a...)
-}
-
-func (s *Server) logf(format string, a ...interface{}) {
-	if s.Logger == nil {
-		return
-	}
-
-	s.Logger.Logf(format, a...)
 }
 
 func color(projects []Project) Color {

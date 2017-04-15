@@ -1,9 +1,9 @@
 package main
 
 import (
+	"io/ioutil"
+	"log"
 	"os"
-
-	"tantalic.com/cistatus"
 )
 
 type config struct {
@@ -16,13 +16,10 @@ type config struct {
 	InstallLaunchAgent bool
 }
 
-func (c config) Logger() cistatus.Logger {
-	var logger cistatus.Logger
-	logger = cistatus.NewNullLogger()
-
-	if c.Verbose {
-		logger = cistatus.NewVerboseLogger(os.Stdout)
+func (c config) Logger() *log.Logger {
+	if !c.Verbose {
+		return log.New(ioutil.Discard, "", 0)
 	}
 
-	return logger
+	return log.New(os.Stdout, "", log.LstdFlags)
 }

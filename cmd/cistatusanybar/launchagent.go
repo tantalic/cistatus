@@ -17,7 +17,7 @@ import (
 
 func installLaunchAgent(conf config) error {
 	logger := conf.Logger()
-	logger.Log("installing launch agent")
+	logger.Println("Installing launch agent")
 
 	t, err := template.New("launchd.tmpl").Parse(launchAgentTemplate)
 	if err != nil {

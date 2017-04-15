@@ -1,7 +1,9 @@
 package main
 
 import (
+	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"tantalic.com/cistatus"
@@ -11,6 +13,8 @@ import (
 )
 
 const (
+	VERBOSE = "VERBOSE"
+
 	GITLAB_API_BASE_URL           = "GITLAB_API_BASE_URL"
 	GITLAB_API_TOKEN              = "GITLAB_API_TOKEN"
 	GITLAB_REFRESH_PERIOD         = "GITLAB_REFRESH_PERIOD"
@@ -25,6 +29,8 @@ const (
 )
 
 type config struct {
+	Verbose bool
+
 	GitLabBaseURL         string
 	GitLabAPIToken        string
 	GitLabRefreshInterval time.Duration
@@ -36,6 +42,12 @@ type config struct {
 
 func configFromEnv() (config, error) {
 	var c config
+
+	verbose, err := strconv.ParseBool(os.Getenv(VERBOSE))
+	if err != nil {
+		verbose = false
+	}
+	c.Verbose = verbose
 
 	c.GitLabBaseURL = os.Getenv(GITLAB_API_BASE_URL)
 	if c.GitLabBaseURL == "" {
@@ -52,7 +64,6 @@ func configFromEnv() (config, error) {
 		refreshPeriod = GITLAB_REFRESH_PERIOD_DEFAULT
 	}
 
-	var err error
 	c.GitLabRefreshInterval, err = time.ParseDuration(refreshPeriod)
 	if err != nil {
 		return c, errors.Wrapf(err, "%s environment variable is invalid", GITLAB_REFRESH_PERIOD)
@@ -80,8 +91,9 @@ func (c config) NewServer() *cistatus.Server {
 	fetcher := gitlab.NewClient(c.GitLabBaseURL, c.GitLabAPIToken)
 	server := cistatus.NewServer(fetcher)
 
-	// Server is always verbose
-	server.Logger = cistatus.NewVerboseLogger(os.Stdout)
+	if c.Verbose {
+		server.Logger = log.New(os.Stdout, "", log.LstdFlags)
+	}
 
 	// JWT setup
 	server.JWT.Algorithm = c.JWTAlgorithm

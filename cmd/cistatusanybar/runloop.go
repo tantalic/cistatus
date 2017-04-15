@@ -19,10 +19,10 @@ func runloop(conf config) error {
 		Port:     conf.AnyBarPort,
 	}
 
-	logger.Logf("starting cistatusanybar version %s", cistatus.Version)
+	logger.Printf("starting cistatusanybar version %s\n", cistatus.Version)
 
 	if conf.StartAnyBar {
-		logger.Log("starting anybar app")
+		logger.Println("starting anybar app")
 		err := anybarClient.Start()
 		if err != nil {
 			return cli.NewExitError(err.Error(), 2)
@@ -30,7 +30,7 @@ func runloop(conf config) error {
 		time.Sleep(anybarLaunchWaitDuration)
 	}
 
-	logger.Logf("setting status to %s until first status is received", anybar.Question)
+	logger.Printf("setting status to %s until first status is received\n", anybar.Question)
 	anybarClient.Set(anybar.Question)
 
 	summaryChan := make(chan cistatus.Summary)
@@ -38,7 +38,7 @@ func runloop(conf config) error {
 		for {
 			status := <-summaryChan
 
-			logger.Logf("received status: %s", status)
+			logger.Printf("received status: %s\n", status)
 			anybarClient.Set(anybar.Style(status.Color))
 		}
 	}()
@@ -49,10 +49,10 @@ func runloop(conf config) error {
 	}
 
 	operation := func() error {
-		logger.Logf("subscribing to watch status (%s)", client.Hostname)
+		logger.Printf("subscribing to watch status (%s)\n", client.Hostname)
 		err := client.Watch(summaryChan)
 		if err != nil {
-			logger.Logf("error watching status:%v", err)
+			logger.Printf("error watching status:%v\n", err)
 			anybarClient.Set(anybar.Question)
 		}
 		return err
