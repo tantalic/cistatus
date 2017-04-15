@@ -18,7 +18,7 @@ type config struct {
 
 func (c config) Logger() cistatus.Logger {
 	var logger cistatus.Logger
-	logger = cistatus.NullLogger{}
+	logger = cistatus.NewNullLogger()
 
 	if c.Verbose {
 		logger = cistatus.NewVerboseLogger(os.Stdout)

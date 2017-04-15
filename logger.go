@@ -30,6 +30,10 @@ func (l VerboseLogger) Logf(format string, a ...interface{}) {
 
 type NullLogger struct{}
 
+func NewNullLogger() NullLogger {
+	return NullLogger{}
+}
+
 func (l NullLogger) Log(a ...interface{}) {
 	// No-op
 }
