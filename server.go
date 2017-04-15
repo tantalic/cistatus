@@ -155,6 +155,8 @@ func (s *Server) handleBroadcasts() {
 	for {
 		// Grab the next message from the broadcast channel
 		msg := <-s.websocket.broadcast
+		msg.Projects = nil
+
 		// Send it out to every client that is currently connected
 		s.websocket.mutex.RLock()
 		for conn := range s.websocket.connections {
