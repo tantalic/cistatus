@@ -4,6 +4,9 @@ import (
 	"os"
 	"time"
 
+	"tantalic.com/cistatus"
+	"tantalic.com/cistatus/gitlab"
+
 	"github.com/pkg/errors"
 )
 
@@ -71,4 +74,18 @@ func configFromEnv() (config, error) {
 	}
 
 	return c, nil
+}
+
+func (c config) NewServer() *cistatus.Server {
+	fetcher := gitlab.NewClient(c.GitLabBaseURL, c.GitLabAPIToken)
+	server := cistatus.NewServer(fetcher)
+
+	// Server is always verbose
+	server.Logger = cistatus.NewVerboseLogger(os.Stdout)
+
+	// JWT setup
+	server.JWT.Algorithm = c.JWTAlgorithm
+	server.JWT.Secret = c.JWTSecret
+
+	return server
 }

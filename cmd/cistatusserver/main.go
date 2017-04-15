@@ -8,9 +8,6 @@ import (
 	"log"
 
 	"net/http"
-
-	"tantalic.com/cistatus"
-	"tantalic.com/cistatus/gitlab"
 )
 
 func main() {
@@ -21,16 +18,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	fetcher := gitlab.NewClient(config.GitLabBaseURL, config.GitLabAPIToken)
-	server := cistatus.Server{
-		Fetcher:      fetcher,
-		Logger:       cistatus.NewVerboseLogger(os.Stdout),
-		JWTAlgorithm: config.JWTAlgorithm,
-		JWTSecret:    config.JWTSecret,
-	}
+	server := config.NewServer()
 	server.StartFetching(config.GitLabRefreshInterval)
 
-	err = http.ListenAndServe(config.HTTPAddress, &server)
+	err = http.ListenAndServe(config.HTTPAddress, server)
 	if err != nil {
 		log.Println(err)
 	}

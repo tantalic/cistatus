@@ -14,50 +14,56 @@ import (
 )
 
 type Server struct {
-	Fetcher Fetcher
-	Logger  Logger
+	*http.ServeMux
 
-	mux           *http.ServeMux
-	upgrader      websocket.Upgrader
+	fetcher       Fetcher
 	latestSummary Summary
 
-	JWTAlgorithm string
-	JWTSecret    []byte
+	Logger Logger
+
+	JWT struct {
+		Algorithm string
+		Secret    []byte
+	}
 
 	websocket struct {
+		upgrader    websocket.Upgrader
 		mutex       sync.RWMutex
 		connections map[*websocket.Conn]bool
 		broadcast   chan Summary
 	}
 }
 
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if s.mux == nil {
-		s.init()
-	}
+func NewServer(fetcher Fetcher) *Server {
+	now := time.Now()
 
-	s.mux.ServeHTTP(w, r)
-}
-
-func (s *Server) init() {
-	// Set default color (if not defined)
-	if s.latestSummary.Color == "" {
-		now := time.Now()
-		s.latestSummary.Color = Unknown
-		s.latestSummary.LastUpdated = &now
+	s := &Server{
+		fetcher: fetcher,
+		// Initial status summary is "unkown"
+		latestSummary: Summary{
+			Color:       Unknown,
+			LastUpdated: &now,
+		},
+		// Default to no logging
+		Logger: NewNullLogger(),
 	}
 
 	// Setup for websockets
-	s.upgrader = websocket.Upgrader{
+	s.websocket.upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
+	s.websocket.connections = make(map[*websocket.Conn]bool)
+	s.websocket.broadcast = make(chan Summary)
+
 	go s.handleBroadcasts()
 
 	// Create servemux with routes to http api
-	s.mux = http.NewServeMux()
-	s.mux.HandleFunc("/api", s.allProjects)
-	s.mux.HandleFunc("/api/watch", s.websocketSubscribeHandler)
+	s.ServeMux = http.NewServeMux()
+	s.ServeMux.HandleFunc("/api", s.allProjects)
+	s.ServeMux.HandleFunc("/api/watch", s.websocketSubscribeHandler)
+
+	return s
 }
 
 func (s *Server) allProjects(w http.ResponseWriter, r *http.Request) {
@@ -74,16 +80,16 @@ func (s *Server) allProjects(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) jwtKey(token *jwt.Token) (interface{}, error) {
-	if token.Method.Alg() != s.JWTAlgorithm {
+	if token.Method.Alg() != s.JWT.Algorithm {
 		return nil, errors.Errorf("unexpected jwt algorithm: %v", token.Header["alg"])
 	}
 
-	return s.JWTSecret, nil
+	return s.JWT.Secret, nil
 }
 
 func (s *Server) isAuthorized(r *http.Request) bool {
 	// If the JWT algorithm OR secret is not set then all requests are authorized
-	if s.JWTSecret == nil || s.JWTAlgorithm == "" {
+	if s.JWT.Secret == nil || s.JWT.Algorithm == "" {
 		return true
 	}
 
@@ -109,7 +115,7 @@ func (s *Server) isAuthorized(r *http.Request) bool {
 }
 
 func (s *Server) websocketSubscribeHandler(w http.ResponseWriter, r *http.Request) {
-	conn, err := s.upgrader.Upgrade(w, r, nil)
+	conn, err := s.websocket.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		err := errors.Wrap(err, "unable to create websocket connection to subscribe to status updates")
 		s.log(err)
@@ -126,7 +132,7 @@ func (s *Server) StartFetching(interval time.Duration) {
 		for {
 			s.log("Fetching CI server status")
 
-			projects, err := s.Fetcher.FetchStatus()
+			projects, err := s.fetcher.FetchStatus()
 			if err != nil {
 				s.logf("Error fetching status: %s\n", err)
 			}
@@ -149,9 +155,6 @@ func (s *Server) StartFetching(interval time.Duration) {
 }
 
 func (s *Server) handleBroadcasts() {
-	s.websocket.connections = make(map[*websocket.Conn]bool)
-	s.websocket.broadcast = make(chan Summary)
-
 	for {
 		// Grab the next message from the broadcast channel
 		msg := <-s.websocket.broadcast
