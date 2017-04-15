@@ -6,10 +6,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/pkg/errors"
 	"tantalic.com/cistatus"
 	"tantalic.com/cistatus/gitlab"
-
-	"github.com/pkg/errors"
 )
 
 const (

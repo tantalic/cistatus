@@ -3,10 +3,9 @@ package cistatus
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
-
-	"fmt"
 
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"

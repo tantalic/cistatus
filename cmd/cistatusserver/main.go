@@ -1,13 +1,11 @@
 package main
 
 import (
+	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-
-	"log"
-
-	"net/http"
 )
 
 func main() {

@@ -2,14 +2,12 @@ package cistatus
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
-	"time"
-
 	"sync"
-
-	"io/ioutil"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/websocket"

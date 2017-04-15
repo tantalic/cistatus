@@ -9,7 +9,6 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/urfave/cli"
-
 	"gobot.io/x/gobot"
 	"tantalic.com/cistatus"
 )

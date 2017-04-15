@@ -3,14 +3,11 @@ package main
 import (
 	"bytes"
 	"io/ioutil"
-	"os/user"
-	"text/template"
-
 	"os"
-
-	"path/filepath"
-
 	"os/exec"
+	"os/user"
+	"path/filepath"
+	"text/template"
 
 	"github.com/urfave/cli"
 )

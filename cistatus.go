@@ -51,8 +51,8 @@ type Summary struct {
 type Color string
 
 const (
-	Red    = Color("red")
-	Yellow = Color("yellow")
-	Green  = Color("green")
+	Red     = Color("red")
+	Yellow  = Color("yellow")
+	Green   = Color("green")
 	Unknown = Color("question")
 )
