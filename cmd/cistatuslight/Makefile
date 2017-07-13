@@ -1,7 +1,7 @@
 PKG := tantalic.com/cistatus
 CMD := cmd/cistatuslight
 SRC := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
-GOVERSION := 1.8.1
+GOVERSION := 1.8.3
 
 .PHONY: run build linux-amd64 linux macos freebsd openbsd netbsd dragonfly windows docker-build docker-push binaries update-ca help
 .DEFAULT_GOAL := help	

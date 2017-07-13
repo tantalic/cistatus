@@ -1,7 +1,7 @@
 PKG := tantalic.com/cistatus
 CMD := cmd/cistatusanybar
 SRC := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
-GOVERSION := 1.8.1
+GOVERSION := 1.8.3
 
 .PHONY: build help
 .DEFAULT_GOAL := help	
