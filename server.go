@@ -6,11 +6,9 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 )
 
@@ -23,15 +21,10 @@ type Server struct {
 	}
 
 	*http.ServeMux
+	wsHub *wsHub
 
 	fetcher       Fetcher
 	latestSummary Summary
-	websocket     struct {
-		upgrader    websocket.Upgrader
-		mutex       sync.RWMutex
-		connections map[*websocket.Conn]bool
-		broadcast   chan Summary
-	}
 }
 
 func NewServer(fetcher Fetcher, fetchInterval time.Duration) *Server {
@@ -46,16 +39,11 @@ func NewServer(fetcher Fetcher, fetchInterval time.Duration) *Server {
 		},
 		// Default to discarding logs
 		Logger: log.New(ioutil.Discard, "", 0),
+		wsHub:  newWSHub(),
 	}
 
-	// Setup for websockets
-	s.websocket.upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-	s.websocket.connections = make(map[*websocket.Conn]bool)
-	s.websocket.broadcast = make(chan Summary)
-	go s.handleBroadcasts()
+	// Start WebSocket Hub
+	go s.wsHub.run()
 
 	// Create servemux with routes to http api
 	s.ServeMux = http.NewServeMux()
@@ -117,14 +105,15 @@ func (s *Server) isAuthorized(r *http.Request) bool {
 }
 
 func (s *Server) websocketSubscribeHandler(w http.ResponseWriter, r *http.Request) {
-	conn, err := s.websocket.upgrader.Upgrade(w, r, nil)
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		err := errors.Wrap(err, "unable to create websocket connection to subscribe to status updates")
 		s.Logger.Println(err)
 		return
 	}
 
-	s.addSubscriber(conn)
+	subscriber := newWSSubscriber(conn)
+	s.wsHub.register <- subscriber
 }
 
 func (s *Server) fetchLoop(interval time.Duration) {
@@ -152,50 +141,12 @@ func (s *Server) fetchLoop(interval time.Duration) {
 		newColor := color(projects)
 		if newColor != s.latestSummary.Color {
 			s.latestSummary.Color = newColor
-			s.websocket.broadcast <- s.latestSummary
+			s.wsHub.broadcast <- s.latestSummary
 		}
 
 		s.Logger.Printf("Fetched %d projects\n", len(projects))
 		<-ticker
 	}
-}
-
-func (s *Server) handleBroadcasts() {
-	for {
-		// Grab the next message from the broadcast channel
-		msg := <-s.websocket.broadcast
-		msg.Projects = nil
-
-		// Send it out to every client that is currently connected
-		s.websocket.mutex.RLock()
-		for conn := range s.websocket.connections {
-			err := conn.WriteJSON(msg)
-			if err != nil {
-				s.removeSubscriber(conn)
-			}
-		}
-		s.websocket.mutex.RUnlock()
-	}
-}
-
-func (s *Server) addSubscriber(conn *websocket.Conn) {
-	// Send current status immediately
-	summary := s.latestSummary
-	summary.Projects = nil
-	conn.WriteJSON(summary)
-
-	// Add to list of connections
-	s.websocket.mutex.Lock()
-	s.websocket.connections[conn] = true
-	s.websocket.mutex.Unlock()
-}
-
-func (s *Server) removeSubscriber(conn *websocket.Conn) {
-	s.websocket.mutex.Lock()
-	delete(s.websocket.connections, conn)
-	s.websocket.mutex.Unlock()
-
-	conn.Close()
 }
 
 func color(projects []Project) Color {
